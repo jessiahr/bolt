@@ -3,14 +3,16 @@ defmodule Bolt.Worker do
   require Logger
   @callback work(params :: List.t) :: integer
 
-  def start_link(params) do
-    GenServer.start_link(__MODULE__, %{params: params, status: :starting, pid: nil})
+  def start_link(params, job_id) do
+    GenServer.start_link(__MODULE__, %{params: params, job_id: job_id, status: :starting, pid: nil})
   end
 
   def init(state) do
     worker = self()
     pid = spawn(fn() ->
+      Logger.info "#{state[:job_id]} starting"
       job_finished(worker, Bolt.Queue.module_for_queue(:main).work(state[:params]))
+      Logger.info "#{state[:job_id]} finished"
     end)
     Process.monitor(pid)
     {:ok, state |> Map.put(:pid, pid) |> Map.put(:status, :running)}

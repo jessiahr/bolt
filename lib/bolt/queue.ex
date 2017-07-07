@@ -30,8 +30,15 @@ defmodule Bolt.Queue do
     end
   end
 
+  def resume_inprogress(queue_name) do
+    if queue_exists?(queue_name) do
+      Bolt.JobStore.resume_inprogress(queue_name)
+    else
+      {:error, "Undefined Queue"}
+    end
+  end
+
   def finish(queue_name, job_id) do
-    Logger.warn "finishing #{job_id}"
     if queue_exists?(queue_name) do
       Bolt.JobStore.finish(queue_name, job_id)
     else

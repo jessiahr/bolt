@@ -19,6 +19,10 @@ defmodule Bolt.JobStore do
     GenServer.call(__MODULE__, {:finish, queue_name, job_id})
   end
 
+  def resume_inprogress(queue_name) do
+    GenServer.call(__MODULE__, {:resume_inprogress, queue_name})
+  end
+
   def init(state) do
     case Redix.start_link(Application.get_env(:bolt, :redis_url)) do
       {:ok, conn} ->
@@ -48,6 +52,22 @@ defmodule Bolt.JobStore do
     {:ok, result} = Redix.command(conn, ["DEL", job_id])
     remove_backup_job(conn, queue_name, job_id)
     {:reply, :ok, state}
+  end
+
+  def handle_call({:resume_inprogress, queue_name}, _from, state = %{conn: conn}) do
+    {:ok, length} = Redix.command(conn, ["LLEN", "#{queue_name}:inprogress"])
+    if length > 0 do
+      Logger.warn "#{queue_name}: resuming #{length} jobs"
+    end
+    {:ok, job_ids} = Redix.command(conn, ["LRANGE", "#{queue_name}:inprogress", 0, (length - 1)])
+    job_ids
+    |> Enum.map(fn(job_id) -> remove_backup_job(conn, queue_name, job_id) end)
+    {:reply, :ok, state}
+  end
+
+  def restore_backup(conn, queue_name, job_id) do
+    {:ok, job_id} = Redix.command(conn, ["RPOP", "#{queue_name}:inprogress"])
+    status = Redix.command(conn, ["LPUSH", "#{queue_name}:waiting", job_id])
   end
 
   def backup_job(conn, queue_name, nil), do: nil

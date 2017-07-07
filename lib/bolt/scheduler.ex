@@ -5,7 +5,7 @@ defmodule Bolt.Scheduler do
   require Logger
 
   def start_link(queue_name) do
-    GenServer.start_link(__MODULE__, %{queue_name: queue_name, workers: []})
+    GenServer.start_link(__MODULE__, %{queue_name: queue_name, workers: [], status: :starting})
   end
 
   def start_links do
@@ -16,13 +16,18 @@ defmodule Bolt.Scheduler do
 
   def init(state) do
     Logger.warn "starting! Scheduler"
-
     schedule_next_work()
     {:ok, state}
   end
 
+  def handle_info(:schedule_work, state = %{status: :starting}) do
+    Logger.warn "init #{state[:queue_name]}"
+    Bolt.Queue.resume_inprogress(state[:queue_name])
+    schedule_next_work()
+    {:noreply, state |> Map.put(:status, :running)}
+  end
+
   def handle_info(:schedule_work, state) do
-    IO.puts "Worker count: #{state |> Map.get(:workers) |> Enum.count}"
     new_state = state
     |> teardown_workers
     |> fill_workers
@@ -66,7 +71,7 @@ defmodule Bolt.Scheduler do
       nil ->
         []
       _ ->
-        {:ok, worker} = Bolt.Worker.start_link(job)
+        {:ok, worker} = Bolt.Worker.start_link(job, job_id)
         [%{process: worker, job_id: job_id, started_at: Timex.now} | build_workers(count - 1, queue_name)]
     end
   end

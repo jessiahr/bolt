@@ -37,7 +37,8 @@ defmodule Bolt.Mixfile do
       {:redix, ">= 0.0.0"},
       {:poison, "~> 3.1"},
       {:uuid, "~> 1.1"},
-      {:timex, "~> 3.0"}
+      {:timex, "~> 3.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
 
@@ -51,7 +52,7 @@ defmodule Bolt.Mixfile do
     # These are the default files included in the package
     [
       name: :bolt,
-      files: ["lib", "priv", "mix.exs", "README*", "readme*", "LICENSE*", "license*"],
+      files: ["lib", "mix.exs", "README*", "LICENSE*"],
       maintainers: ["Jessiah Ratliff"],
       licenses: ["Apache 2.0"],
       links: %{"GitHub" => "https://github.com/jessiahr/bolt"}
