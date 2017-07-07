@@ -1,6 +1,6 @@
 # Bolt
 
-**TODO: Add description**
+A simple job queue using OTP.
 
 ## Installation
 
