@@ -2,6 +2,10 @@
 
 A simple job queue using OTP.
 
+
+![](https://d26dzxoao6i3hh.cloudfront.net/items/012M0D3L1w462P1m2H3s/giphy-tumblr.gif)
+
+
 ## Installation
 
 ```elixir
