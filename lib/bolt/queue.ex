@@ -14,6 +14,15 @@ defmodule Bolt.Queue do
     {:ok, schedulers}
   end
 
+  def queues do
+    GenServer.call(__MODULE__, {:queues})
+  end
+
+  def status do
+    Bolt.Queue.queues
+    |> Enum.map(fn(scheduler) -> Bolt.Scheduler.status(scheduler[:pid]) end)
+  end
+
   def enqueue(queue_name, job_params) do
     if queue_exists?(queue_name) do
       Bolt.JobStore.add(queue_name, job_params)
@@ -58,4 +67,9 @@ defmodule Bolt.Queue do
     |> Enum.map(fn(q) -> elem(q, 1) end)
     |> List.last
   end
+
+  def handle_call({:queues}, _from, state) do
+    {:reply, state, state}
+  end
+
 end

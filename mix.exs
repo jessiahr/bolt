@@ -36,6 +36,8 @@ defmodule Bolt.Mixfile do
     [
       {:redix, ">= 0.0.0"},
       {:poison, "~> 3.1"},
+      {:cowboy, "~> 1.0"},
+      {:plug, "~> 1.3.2"},
       {:uuid, "~> 1.1"},
       {:timex, "~> 3.0"},
       {:ex_doc, ">= 0.0.0", only: :dev}

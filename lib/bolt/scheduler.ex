@@ -1,11 +1,14 @@
 defmodule Bolt.Scheduler do
-  @worker_count 10
-  @interval 1000
+  @interval 10
   use GenServer
   require Logger
 
   def start_link(queue_name) do
-    GenServer.start_link(__MODULE__, %{queue_name: queue_name, workers: [], status: :starting})
+    worker_max = Application.get_env(:bolt, :queues)
+    |> Enum.filter(fn(q)-> (elem(q, 0) == queue_name) && (tuple_size(q) == 3) end)
+    |> Enum.map(fn(q) -> elem(q, 2) end)
+    |> List.last || 1
+    GenServer.start_link(__MODULE__, %{queue_name: queue_name, workers: [], worker_max: worker_max, status: :starting})
   end
 
   def start_links do
@@ -18,6 +21,25 @@ defmodule Bolt.Scheduler do
     Logger.warn "starting! Scheduler"
     schedule_next_work()
     {:ok, state}
+  end
+
+  def status(scheduler) do
+    GenServer.call(scheduler, {:status})
+  end
+
+  def handle_call({:status}, _from, state) do
+    workers = state[:workers]
+    |> Enum.map(fn(w) ->
+      w
+      |> Map.drop([:process])
+      |> Map.put(:status, Bolt.Worker.status(w[:process]))
+    end)
+
+    status = state
+    |> Map.put(:workers, workers)
+    |> Map.put(:jobs_remaining, (Bolt.JobStore.remaining_count(state[:queue_name]) |> elem(1)))
+
+    {:reply, status, state}
   end
 
   def handle_info(:schedule_work, state = %{status: :starting}) do
@@ -56,8 +78,8 @@ defmodule Bolt.Scheduler do
     |> Map.put(:workers, workers)
   end
 
-  def fill_workers(state = %{workers: workers, queue_name: queue_name}) do
-    new_workers = (@worker_count - Enum.count(workers))
+  def fill_workers(state = %{workers: workers, queue_name: queue_name, worker_max: worker_max}) do
+    new_workers = (worker_max - Enum.count(workers))
     |> build_workers(queue_name)
     workers ++ new_workers
     Map.put(state, :workers, new_workers)

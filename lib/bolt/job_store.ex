@@ -19,6 +19,10 @@ defmodule Bolt.JobStore do
     GenServer.call(__MODULE__, {:finish, queue_name, job_id})
   end
 
+  def remaining_count(queue_name) do
+    GenServer.call(__MODULE__, {:remaining_count, queue_name})
+  end
+
   def resume_inprogress(queue_name) do
     GenServer.call(__MODULE__, {:resume_inprogress, queue_name})
   end
@@ -61,8 +65,14 @@ defmodule Bolt.JobStore do
     end
     {:ok, job_ids} = Redix.command(conn, ["LRANGE", "#{queue_name}:inprogress", 0, (length - 1)])
     job_ids
-    |> Enum.map(fn(job_id) -> remove_backup_job(conn, queue_name, job_id) end)
+    |> Enum.map(fn(job_id) -> restore_backup(conn, queue_name, job_id) end)
     {:reply, :ok, state}
+  end
+
+  def handle_call({:remaining_count, queue_name}, _from, state = %{conn: conn}) do
+    {:ok, remaining_count} = Redix.command(conn, ["LLEN", "#{queue_name}:waiting"])
+
+    {:reply, {:ok, remaining_count}, state}
   end
 
   def restore_backup(conn, queue_name, job_id) do

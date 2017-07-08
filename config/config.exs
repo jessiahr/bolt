@@ -4,4 +4,5 @@ use Mix.Config
 
 config :bolt,
   queues: [{:main, Bolt.ExampleWorker}, {:bg, Bolt.ExampleWorker}],
-  redis_url: "redis://localhost:6379"
+  redis_url: "redis://localhost:6379",
+  port: 3000
