@@ -37,7 +37,7 @@ end
 ```
 
 ### Use The API
-`GET localhost:3000/` change the port by setting in config.
+`GET localhost:3000/` change the port by setting in config or set to nil to disable endpoint.
 ```json
 [
   {
