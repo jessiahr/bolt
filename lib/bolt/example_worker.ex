@@ -1,6 +1,6 @@
 defmodule Bolt.ExampleWorker do
   @behaviour Bolt.Worker
   def work(params) do
-    1
+    IO.inspect params
   end
 end

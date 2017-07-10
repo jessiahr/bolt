@@ -49,7 +49,12 @@ defmodule Bolt.JobStore do
     {:ok, job_id} = Redix.command(conn, ["RPOP", "#{queue_name}:waiting"])
     backup_job(conn, queue_name, job_id)
     {:ok, job} = Redix.command(conn, ["HGET", job_id, "params"])
-    {:reply, {:ok, job_id, job}, state}
+    {:reply, {:ok, job_id, decode_job(job)}, state}
+  end
+
+  defp decode_job(nil), do: nil
+  defp decode_job(job) do
+    Poison.decode!(job)
   end
 
   def handle_call({:finish, queue_name, job_id}, _from, state = %{conn: conn}) do
