@@ -81,8 +81,7 @@ defmodule Bolt.Scheduler do
   def fill_workers(state = %{workers: workers, queue_name: queue_name, worker_max: worker_max}) do
     new_workers = (worker_max - Enum.count(workers))
     |> build_workers(queue_name)
-    workers ++ new_workers
-    Map.put(state, :workers, new_workers)
+    Map.put(state, :workers, (workers ++ new_workers))
   end
 
   def build_workers(0, _), do: []

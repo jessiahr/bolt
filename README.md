@@ -10,7 +10,7 @@ A simple job queue using OTP.
 
 ```elixir
 def deps do
-  [{:bolt, "~> 0.1.2"}]
+  [{:bolt, "~> 0.1.3"}]
 end
 ```
 ## Usage
