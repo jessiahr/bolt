@@ -4,23 +4,12 @@ defmodule Bolt.WebServer do
   """
   use Plug.Router
 
+  # plug Bolt.UiPlug
   plug Plug.Logger
   plug :match
   plug :dispatch
 
-  get "/favicon.ico" do
-    conn
-    |> send_resp(404, "")
-    |> halt
-  end
-
-  get "/" do
-    params = conn
-    |> fetch_query_params
-
-    conn
-    |> send_resp(200, Bolt.Queue.status |> Poison.encode!)
-  end
+  forward "/bolt", to: Bolt.Router
 
   def child_spec(port) do
     Plug.Adapters.Cowboy.child_spec(:http, __MODULE__, [], [port: port])

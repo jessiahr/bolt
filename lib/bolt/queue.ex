@@ -14,12 +14,33 @@ defmodule Bolt.Queue do
     {:ok, schedulers}
   end
 
-  def queues do
-    GenServer.call(__MODULE__, {:queues})
+  @doc """
+  Returns the list of schedulers
+  """
+  def schedulers do
+    GenServer.call(__MODULE__, {:schedulers})
+  end
+
+  @doc """
+  Sets the max worker count for the scheduler.
+  """
+  def set_worker_max(schedulers_name, worker_max) do
+    find_schedulers(schedulers_name)
+    |> Map.get(:pid)
+    |> Bolt.Scheduler.set_worker_max(worker_max)
+  end
+
+  @doc """
+  Returns a running queue by name.
+  """
+  def find_schedulers(schedulers_name) do
+    Bolt.Queue.schedulers
+    |> Enum.filter(fn(scheduler) -> Atom.to_string(scheduler[:queue_name]) == schedulers_name end)
+    |> List.first
   end
 
   def status do
-    Bolt.Queue.queues
+    Bolt.Queue.schedulers
     |> Enum.map(fn(scheduler) -> Bolt.Scheduler.status(scheduler[:pid]) end)
   end
 
@@ -68,7 +89,7 @@ defmodule Bolt.Queue do
     |> List.last
   end
 
-  def handle_call({:queues}, _from, state) do
+  def handle_call({:schedulers}, _from, state) do
     {:reply, state, state}
   end
 
