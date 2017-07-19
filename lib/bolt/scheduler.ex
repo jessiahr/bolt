@@ -23,8 +23,22 @@ defmodule Bolt.Scheduler do
     {:ok, state}
   end
 
+  @doc """
+  Returns the status for the scheduler including workers and remaining_count
+  """
   def status(scheduler) do
     GenServer.call(scheduler, {:status})
+  end
+
+  @doc """
+  Sets the max worker count for the scheduler.
+  """
+  def set_worker_max(scheduler, worker_max) do
+    GenServer.cast(scheduler, {:set_worker_max, worker_max})
+  end
+
+  def handle_cast({:set_worker_max, worker_max}, state) do
+    {:noreply, state |> Map.put(:worker_max, worker_max)}
   end
 
   def handle_call({:status}, _from, state) do
@@ -81,8 +95,7 @@ defmodule Bolt.Scheduler do
   def fill_workers(state = %{workers: workers, queue_name: queue_name, worker_max: worker_max}) do
     new_workers = (worker_max - Enum.count(workers))
     |> build_workers(queue_name)
-    workers ++ new_workers
-    Map.put(state, :workers, new_workers)
+    Map.put(state, :workers, (workers ++ new_workers))
   end
 
   def build_workers(0, _), do: []
