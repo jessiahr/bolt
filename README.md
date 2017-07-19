@@ -1,4 +1,4 @@
-# Bolt
+# Bolt [![Build Status](https://travis-ci.org/jessiahr/bolt.svg?branch=master)](https://travis-ci.org/jessiahr/bolt)
 
 A simple job queue using OTP.
 
