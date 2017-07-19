@@ -80,9 +80,20 @@ defmodule Bolt.JobStore do
     {:reply, {:ok, remaining_count}, state}
   end
 
+  @doc """
+  Moves the backed up job into the queue to be processed. This is called once on start
+  for each of the unfinished jobs.
+  """
   def restore_backup(conn, queue_name, job_id) do
-    {:ok, job_id} = Redix.command(conn, ["RPOP", "#{queue_name}:inprogress"])
-    status = Redix.command(conn, ["LPUSH", "#{queue_name}:waiting", job_id])
+    [1, index] = Redix.pipeline!(
+      conn,
+      [
+        ["LREM", "#{queue_name}:inprogress", 0, job_id],
+        ["LPUSH", "#{queue_name}:waiting", "#{queue_name}:jobs:id#{job_id}"]
+      ]
+
+    )
+    {:ok, index}
   end
 
   def backup_job(conn, queue_name, nil), do: nil
