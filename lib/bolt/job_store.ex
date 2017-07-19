@@ -85,11 +85,11 @@ defmodule Bolt.JobStore do
   for each of the unfinished jobs.
   """
   def restore_backup(conn, queue_name, job_id) do
-    [1, index] = Redix.pipeline!(
+    [_, index] = Redix.pipeline!(
       conn,
       [
         ["LREM", "#{queue_name}:inprogress", 0, job_id],
-        ["LPUSH", "#{queue_name}:waiting", "#{queue_name}:jobs:id#{job_id}"]
+        ["RPUSH", "#{queue_name}:waiting", job_id]
       ]
 
     )

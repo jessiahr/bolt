@@ -98,9 +98,7 @@ defmodule Bolt.Scheduler do
     Map.put(state, :workers, (workers ++ new_workers))
   end
 
-  def build_workers(0, _), do: []
-
-  def build_workers(count, queue_name) do
+  def build_workers(count, queue_name) when count > 0 do
     {:ok, job_id, job} = Bolt.Queue.checkout(queue_name)
     case job_id do
       nil ->
@@ -110,6 +108,8 @@ defmodule Bolt.Scheduler do
         [%{process: worker, job_id: job_id, started_at: Timex.now} | build_workers(count - 1, queue_name)]
     end
   end
+
+  def build_workers(_, _), do: []
 
   defp schedule_next_work() do
     Process.send_after(self(), :schedule_work, @interval) # In 2 hours
