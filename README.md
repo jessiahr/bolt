@@ -10,7 +10,7 @@ A simple job queue using OTP.
 
 ```elixir
 def deps do
-  [{:bolt, "~> 0.1.3"}]
+  [{:bolt, "~> 0.1.4"}]
 end
 ```
 ## Usage
@@ -65,4 +65,12 @@ end
     "jobs_remaining": 167804
   }
 ]
+```
+
+### Manage Queues
+
+Forward `/bolt` to the `Bolt.Router`
+
+```elixir
+forward "/bolt", to: Bolt.Router
 ```
