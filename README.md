@@ -74,3 +74,12 @@ Forward `/bolt` to the `Bolt.Router`
 ```elixir
 forward "/bolt", to: Bolt.Router
 ```
+Go to `/bolt` to see the dashboard app
+
+
+![](https://d26dzxoao6i3hh.cloudfront.net/items/0r190p3q22432L3q1h2V/Screen%20Shot%202017-07-19%20at%201.36.29%20PM.png)
+
+
+### Todo
+* Test Coverage
+* Docs
