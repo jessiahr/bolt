@@ -24,8 +24,9 @@ defmodule Bolt.Router do
   get "/css/app.css" do
     index_path = Path.join([Application.app_dir(:bolt), "priv/static/css/app.css"])
     conn
-     |> send_file(200, index_path)
-     |> halt
+    |> put_resp_header("Content-Type", "text/css")
+    |> send_file(200, index_path)
+    |> halt
   end
 
   get "/js/app.js" do

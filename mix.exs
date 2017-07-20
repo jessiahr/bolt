@@ -3,7 +3,7 @@ defmodule Bolt.Mixfile do
 
   def project do
     [app: :bolt,
-     version: "0.1.4",
+     version: "0.1.5",
      elixir: "~> 1.4",
      package: package(),
      description: description(),
