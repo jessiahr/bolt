@@ -40,6 +40,7 @@ defmodule Bolt.Mixfile do
       {:plug, "~> 1.3.2"},
       {:uuid, "~> 1.1"},
       {:timex, "~> 3.0"},
+      {:mock, "~> 0.2.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
