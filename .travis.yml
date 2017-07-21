@@ -3,3 +3,5 @@ elixir:
   - 1.4.5
 otp_release:
   - 20.0
+services:
+  - redis-server
