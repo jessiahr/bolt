@@ -1,4 +1,8 @@
-# Bolt [![Build Status](https://travis-ci.org/jessiahr/bolt.svg?branch=master)](https://travis-ci.org/jessiahr/bolt)
+# Bolt
+
+[![Build Status](https://travis-ci.org/jessiahr/bolt.svg?branch=master)](https://travis-ci.org/jessiahr/bolt)
+[![Hex.pm](https://img.shields.io/hexpm/v/bolt.svg)](https://hex.pm/packages/bolt)
+
 
 A simple job queue using OTP.
 
@@ -14,6 +18,8 @@ def deps do
 end
 ```
 ## Usage
+
+For more detail see the [documentation](http://hexdocs.pm/bolt).
 
 ### Configure Queues
 ```elixir
