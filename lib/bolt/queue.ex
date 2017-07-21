@@ -33,12 +33,24 @@ defmodule Bolt.Queue do
   @doc """
   Returns a running queue by name.
   """
-  def find_schedulers(schedulers_name) do
+  def find_schedulers(schedulers_name) when is_atom(schedulers_name) do
+    schedulers_name
+    |> Atom.to_string
+    |> find_schedulers
+  end
+
+  @doc """
+  Returns a running queue by name.
+  """
+  def find_schedulers(schedulers_name) when is_binary(schedulers_name) do
     Bolt.Queue.schedulers
     |> Enum.filter(fn(scheduler) -> Atom.to_string(scheduler[:queue_name]) == schedulers_name end)
     |> List.first
   end
 
+  @doc """
+  Returns a the status for each scheduler and its workers.
+  """
   def status do
     Bolt.Queue.schedulers
     |> Enum.map(fn(scheduler) -> Bolt.Scheduler.status(scheduler[:pid]) end)
