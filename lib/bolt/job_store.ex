@@ -15,6 +15,10 @@ defmodule Bolt.JobStore do
     GenServer.call(__MODULE__, {:start, queue_name})
   end
 
+  def failed(queue_name, job_id, error) do
+    GenServer.call(__MODULE__, {:failed, queue_name, job_id, error})
+  end
+
   def finish(queue_name, job_id) do
     GenServer.call(__MODULE__, {:finish, queue_name, job_id})
   end
@@ -45,6 +49,22 @@ defmodule Bolt.JobStore do
     {:reply, {:ok, job_id}, state}
   end
 
+  def handle_call({:failed, queue_name, job_id, error}, _from, state = %{conn: conn}) do
+    {:ok, job_params} = Redix.command(conn, ["HGET", job_id, "params"])
+    job_guid = job_id |> String.split(":") |> List.last
+    result = Redix.pipeline!(
+      conn,
+      [
+        ["LREM", "#{queue_name}:inprogress", 0, job_id],
+        ["DEL", "#{queue_name}:jobs:#{job_guid}"],
+        ["RPUSH", "#{queue_name}:failed", job_guid],
+        ["HSET", "#{queue_name}:failed:#{job_guid}", "params", job_params],
+        ["HSET", "#{queue_name}:failed:#{job_guid}", "error", error]
+      ]
+    )
+    {:reply, {:ok}, state}
+  end
+
   def handle_call({:start, queue_name}, _from, state = %{conn: conn}) do
     {:ok, job_id} = Redix.command(conn, ["RPOP", "#{queue_name}:waiting"])
     backup_job(conn, queue_name, job_id)
@@ -59,8 +79,12 @@ defmodule Bolt.JobStore do
 
   def handle_call({:finish, queue_name, job_id}, _from, state = %{conn: conn}) do
     {:ok, result} = Redix.command(conn, ["DEL", job_id])
-    remove_backup_job(conn, queue_name, job_id)
-    {:reply, :ok, state}
+    if result == 0 do
+      {:reply, :error, state}
+    else
+      remove_backup_job(conn, queue_name, job_id)
+      {:reply, :ok, state}
+    end
   end
 
   def handle_call({:resume_inprogress, queue_name}, _from, state = %{conn: conn}) do
@@ -91,7 +115,6 @@ defmodule Bolt.JobStore do
         ["LREM", "#{queue_name}:inprogress", 0, job_id],
         ["RPUSH", "#{queue_name}:waiting", job_id]
       ]
-
     )
     {:ok, index}
   end
