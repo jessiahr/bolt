@@ -5,6 +5,8 @@ defmodule JobStoreTest do
   setup do
     Application.stop(:bolt)
     Application.start(:bolt)
+    {:ok, conn} = Redix.start_link(Application.get_env(:bolt, :redis_url))
+    {:ok, length} = Redix.command(conn, ["FLUSHALL"])
     :ok
   end
 
