@@ -4,7 +4,7 @@ defmodule Bolt.Worker do
   @callback work(params :: List.t) :: integer
 
   def start_link(params, job_id) do
-    GenServer.start_link(__MODULE__, %{params: params, job_id: job_id, status: :starting, pid: nil})
+    GenServer.start_link(__MODULE__, %{params: params, job_id: job_id, status: :starting, pid: nil, error: nil})
   end
 
   def init(state) do
@@ -22,6 +22,10 @@ defmodule Bolt.Worker do
     GenServer.call(worker, {:status})
   end
 
+  def error(worker) do
+    GenServer.call(worker, {:error})
+  end
+
   def teardown(worker) do
     GenServer.stop(worker, :normal)
     false
@@ -33,6 +37,10 @@ defmodule Bolt.Worker do
 
   def handle_call({:status}, _from, state) do
     {:reply, state[:status], state}
+  end
+
+  def handle_call({:error}, _from, state) do
+    {:reply, state[:error], state}
   end
 
 
@@ -47,6 +55,7 @@ defmodule Bolt.Worker do
   def handle_info(msg = {:DOWN, ref, tag, pid, error}, state) do
     new_state = state
     |> Map.put(:status, :failed)
+    |> Map.put(:error, error)
     {:noreply, new_state}
   end
 end

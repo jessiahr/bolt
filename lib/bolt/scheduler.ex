@@ -85,6 +85,9 @@ defmodule Bolt.Scheduler do
           Bolt.Worker.teardown(worker[:process])
         :failed ->
           Logger.warn "Worker failed and will be recycled"
+          error = Bolt.Worker.error(worker[:process])
+          |> Kernel.inspect
+          Bolt.JobStore.failed(state[:queue_name], worker[:job_id], error)
           Bolt.Worker.teardown(worker[:process])
       end
     end)
@@ -112,6 +115,6 @@ defmodule Bolt.Scheduler do
   def build_workers(_, _), do: []
 
   defp schedule_next_work() do
-    Process.send_after(self(), :schedule_work, @interval) # In 2 hours
+    Process.send_after(self(), :schedule_work, @interval)
   end
 end
