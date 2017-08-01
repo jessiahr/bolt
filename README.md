@@ -14,7 +14,7 @@ A simple job queue using OTP.
 
 ```elixir
 def deps do
-  [{:bolt, "~> 0.1.5"}]
+  [{:bolt, "~> 0.1.6"}]
 end
 ```
 ## Usage
@@ -25,7 +25,7 @@ For more detail see the [documentation](http://hexdocs.pm/bolt).
 ```elixir
 #config.ex
 config :bolt,
-  queues: [{:main, SomeApp.SomeWorker}, {:main, SomeApp.SomeWorker}],
+  queues: [{:main, SomeApp.SomeWorker, 10}, {:bg, SomeApp.SomeWorker, 2}],
   redis_url: "redis://localhost:6379",
   port: 3000
 ```
