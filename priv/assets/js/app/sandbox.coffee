@@ -4,6 +4,9 @@ module.exports =
     status: null
   ready: ->
     if !@status?
+      @poll({}, (data) =>
+        @status = data
+      )
       @updateStatus()
   methods:
     updateStatus: ->
