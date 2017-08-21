@@ -27,6 +27,10 @@ defmodule Bolt.JobStore do
     GenServer.call(__MODULE__, {:remaining_count, queue_name})
   end
 
+  def failed_count(queue_name) do
+    GenServer.call(__MODULE__, {:failed_count, queue_name})
+  end
+
   def resume_inprogress(queue_name) do
     GenServer.call(__MODULE__, {:resume_inprogress, queue_name})
   end
@@ -102,6 +106,11 @@ defmodule Bolt.JobStore do
     {:ok, remaining_count} = Redix.command(conn, ["LLEN", "#{queue_name}:waiting"])
 
     {:reply, {:ok, remaining_count}, state}
+  end
+
+  def handle_call({:failed_count, queue_name}, _from, state = %{conn: conn}) do
+    {:ok, failed_count} = Redix.command(conn, ["LLEN", "#{queue_name}:failed"])
+    {:reply, {:ok, failed_count}, state}
   end
 
   @doc """

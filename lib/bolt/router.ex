@@ -44,6 +44,13 @@ defmodule Bolt.Router do
     |> send_resp(200, Bolt.Queue.status |> Poison.encode!)
   end
 
+  get "/api/:queue_name/failed" do
+    scheduler = Bolt.Scheduler.find_schedulers(queue_name)
+
+    conn
+    |> send_resp(200, Bolt.Queue.status |> Poison.encode!)
+  end
+
   post "/api/:queue_name/workers" do
     case conn.body_params do
       %{"worker_max" => worker_max} ->
