@@ -10,9 +10,9 @@ defmodule Bolt.Worker do
   def init(state) do
     worker = self()
     pid = spawn(fn() ->
-      Logger.info "#{state[:job_id]} starting"
+      Logger.debug "#{state[:job_id]} starting"
       job_finished(worker, Bolt.Queue.module_for_queue(:main).work(state[:params]))
-      Logger.info "#{state[:job_id]} finished"
+      Logger.debug "#{state[:job_id]} finished"
     end)
     Process.monitor(pid)
     {:ok, state |> Map.put(:pid, pid) |> Map.put(:status, :running)}

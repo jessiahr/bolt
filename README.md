@@ -7,14 +7,14 @@
 A simple job queue using OTP.
 
 
-![](https://media.giphy.com/media/3o7TKxJRKk8uPOOdgY/giphy.gif)
+![](https://d26dzxoao6i3hh.cloudfront.net/items/012M0D3L1w462P1m2H3s/giphy-tumblr.gif)
 
 
 ## Installation
 
 ```elixir
 def deps do
-  [{:bolt, "~> 0.1.6"}]
+  [{:bolt, "~> 0.1.7"}]
 end
 ```
 ## Usage
@@ -83,7 +83,7 @@ forward "/bolt", to: Bolt.Router
 Go to `/bolt` to see the dashboard app
 
 
-![](https://d26dzxoao6i3hh.cloudfront.net/items/0k1U343w2k2h3q0x0J0U/Screen%20Shot%202017-08-09%20at%204.00.58%20PM.png?v=5906937a)
+![](https://d26dzxoao6i3hh.cloudfront.net/items/0r190p3q22432L3q1h2V/Screen%20Shot%202017-07-19%20at%201.36.29%20PM.png)
 
 
 ### Todo
