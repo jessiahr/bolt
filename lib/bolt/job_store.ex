@@ -14,7 +14,7 @@ defmodule Bolt.JobStore do
   end 
 
   def add(queue_name, job_list) when is_list(job_list) do
-    Stream.chunk_every(job_list, @chunk_size) 
+    Stream.chunk(job_list, @chunk_size, @chunk_size, []) 
     |> Stream.map(fn(job_set) ->
       commands_for_chunk = Enum.reduce(job_set, [], fn(job, acc) -> 
         Bolt.JobStore.Redis.build_add(queue_name, job) ++ acc
@@ -149,7 +149,7 @@ defmodule Bolt.JobStore do
   GenServer handler for getting the latest set of failed jobs for this queue.
   """
   def handle_call({:failed_list, queue_name}, _from, state = %{conn: conn}) do
-    {:ok, failed_jobs} = Redix.command(conn, ["LRANGE", "#{queue_name}:failed", 0, 100])
+    {:ok, failed_jobs} = Redix.command(conn, ["LRANGE", "#{queue_name}:failed", -100, -1])
     {:reply, {:ok, failed_jobs}, state}
   end 
 
