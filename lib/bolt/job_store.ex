@@ -44,8 +44,13 @@ defmodule Bolt.JobStore do
 
   def handle_call({:add, queue_name, job_params}, _from, state = %{conn: conn}) do
     job_id = UUID.uuid1()
-    status = Redix.command(conn, ["HSET", "#{queue_name}:jobs:id#{job_id}", "params", Poison.encode!(job_params)])
-    status = Redix.command(conn, ["LPUSH", "#{queue_name}:waiting", "#{queue_name}:jobs:id#{job_id}"])
+    Redix.pipeline!(
+      conn,
+      [
+        ["HSET", "#{queue_name}:jobs:id#{job_id}", "params", Poison.encode!(job_params)],
+        ["LPUSH", "#{queue_name}:waiting", "#{queue_name}:jobs:id#{job_id}"]
+      ]
+    )
     {:reply, {:ok, job_id}, state}
   end
 
