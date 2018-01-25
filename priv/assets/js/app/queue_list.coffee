@@ -18,6 +18,10 @@ module.exports =
     removeWorker: (queue)->
       @setWorkers(queue.queue_name, {worker_max: (queue.worker_max - 1)}, (data) =>
         @updateStatus()
+      )  
+    showFailedJobs:(queue) ->
+      @$router.go(
+        {name: 'failed_jobs', params: {queue: queue}}
       )
   template: """
 <div class="cf mw8 center">
@@ -37,6 +41,19 @@ module.exports =
               </div>
               <div class="fl tr w-20">
                 {{queue.jobs_remaining}}
+              </div>
+            </div>
+            </div>
+        </li>
+        <li @click="showFailedJobs(queue.queue_name)"
+          class="flex items-center lh-copy pa3 ph0-l bb b--black-10 bg-animate hover-bg-washed-red">
+            <div class="flex-auto">
+            <div class="cf ph2">
+              <div class="fl w-80">
+                Jobs Failed:
+              </div>
+              <div class="fl tr w-20">
+                {{queue.failed_count}}
               </div>
             </div>
             </div>

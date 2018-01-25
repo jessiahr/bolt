@@ -68,7 +68,18 @@ defmodule Bolt.Queue do
   @doc """
   Adds a job to the queue if it exists.
   """
-  def enqueue(queue_name, job_params) do
+  def enqueue(queue_name, job_params) when is_map(job_params) do
+    if queue_exists?(queue_name) do
+      Bolt.JobStore.add(queue_name, job_params)
+    else
+      {:error, "Undefined Queue"}
+    end
+  end
+
+  @doc """
+  Adds a list of jobs to the queue if it exists.
+  """
+  def enqueue(queue_name, job_params) when is_list(job_params) do
     if queue_exists?(queue_name) do
       Bolt.JobStore.add(queue_name, job_params)
     else

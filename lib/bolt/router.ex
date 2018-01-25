@@ -16,8 +16,9 @@ defmodule Bolt.Router do
 
 
   get "/favicon.ico" do
+    index_path = Path.join([Application.app_dir(:bolt), "priv/static/favicon.ico"])
     conn
-    |> send_resp(404, "")
+    |> send_file(200, index_path)
     |> halt
   end
 
@@ -42,6 +43,24 @@ defmodule Bolt.Router do
 
     conn
     |> send_resp(200, Bolt.Queue.status |> Poison.encode!)
+  end
+
+  get "/api/:queue_name/failed" do
+    params = conn
+    |> fetch_query_params
+    {:ok, failed_ids} = Bolt.JobStore.failed_list(queue_name)
+
+    conn
+    |> send_resp(200, failed_ids |> Poison.encode!)
+  end
+
+  get "/api/:queue_name/failed/:job_id" do
+    params = conn
+    |> fetch_query_params
+    {:ok, failed_job_details} = Bolt.JobStore.failed_details(queue_name, job_id)
+
+    conn
+    |> send_resp(200, failed_job_details |> Poison.encode!)
   end
 
   post "/api/:queue_name/workers" do
