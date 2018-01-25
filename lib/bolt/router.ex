@@ -38,16 +38,11 @@ defmodule Bolt.Router do
   end
 
   get "/api/status" do
-    params = conn
-    |> fetch_query_params
-
     conn
     |> send_resp(200, Bolt.Queue.status |> Poison.encode!)
   end
 
   get "/api/:queue_name/failed" do
-    params = conn
-    |> fetch_query_params
     {:ok, failed_ids} = Bolt.JobStore.failed_list(queue_name)
 
     conn
@@ -55,8 +50,6 @@ defmodule Bolt.Router do
   end
 
   get "/api/:queue_name/failed/:job_id" do
-    params = conn
-    |> fetch_query_params
     {:ok, failed_job_details} = Bolt.JobStore.failed_details(queue_name, job_id)
 
     conn
@@ -69,7 +62,7 @@ defmodule Bolt.Router do
         :ok = Bolt.Queue.set_worker_max(queue_name, worker_max)
         conn
         |> send_resp(200, "success")
-      other ->
+      _ ->
         conn
         |> send_resp(302, "meh?")
     end
