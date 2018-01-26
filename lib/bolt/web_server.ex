@@ -10,6 +10,7 @@ defmodule Bolt.WebServer do
   plug :dispatch
 
   forward "/bolt", to: Bolt.Router
+  forward "/favicon.ico", to: Bolt.Router
 
   def child_spec(port) do
     Plug.Adapters.Cowboy.child_spec(:http, __MODULE__, [], [port: port])

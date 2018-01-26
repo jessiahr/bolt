@@ -4,6 +4,8 @@ defmodule QueueTest do
 
   setup do
     Application.start(:bolt)
+    {:ok, conn} = Redix.start_link(Application.get_env(:bolt, :redis_url))
+    {:ok, length} = Redix.command(conn, ["FLUSHALL"])
     :ok
   end
 
@@ -57,6 +59,27 @@ defmodule QueueTest do
       assert called Bolt.JobStore.add(:main, %{a: 1, b: [2, 3]})
       assert result == {:ok, "job_id"}
     end
+  end
+
+    test "enqueues a list of jobs when queue does exist" do
+    with_mocks([
+      {Bolt.JobStore, [],  [add: fn(_, _) -> [{:ok, "job_id1"}, {:ok, "job_id1"}] end]}
+    ]) do
+      result = Bolt.Queue.enqueue(:main, [%{a: 1, b: [2, 3]}, %{a: 1, b: [2, 3]}])
+      assert called Bolt.JobStore.add(:main, [%{a: 1, b: [2, 3]}, %{a: 1, b: [2, 3]}])
+      assert result == [ok: "job_id1", ok: "job_id1"]
+    end
+  end
+
+  test "enqueues a large list of jobs when queue does exist" do
+    test_size = 100000
+    assert Bolt.JobStore.remaining_count(:main) == {:ok, 0}
+    jobs = for n <- 1..test_size do
+      %{a: 1, b: [2, 3]}
+    end 
+    result = Bolt.Queue.enqueue(:main, jobs)
+
+   assert Bolt.JobStore.remaining_count(:main) == {:ok, test_size}
   end
 
   test "checks out a job" do

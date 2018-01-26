@@ -149,8 +149,8 @@ var __makeRelativeRequire = function(require, mappings, pref) {
   }
 };
 
-require.register("process/browser.js", function(exports, require, module) {
-  require = __makeRelativeRequire(require, {}, "process");
+require.register("brunch/node_modules/process/browser.js", function(exports, require, module) {
+  require = __makeRelativeRequire(require, {}, "brunch/node_modules/process");
   (function() {
     // shim for using process in browser
 var process = module.exports = {};
@@ -322,6 +322,10 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
@@ -14498,7 +14502,7 @@ module.exports = Vue;
   })();
 });
 require.register("js/app.coffee", function(exports, require, module) {
-var App, Sandbox, Vue, VueRouter, router;
+var App, FailedJobs, QueueList, Vue, VueRouter, router;
 
 Vue = require("vue");
 
@@ -14508,23 +14512,73 @@ Vue.use(require('vue-resource'));
 
 Vue.use(VueRouter);
 
-Sandbox = Vue.component('sandbox', require('./app/sandbox'));
+QueueList = Vue.component('queue-list', require('./app/queue_list'));
+
+FailedJobs = Vue.component('failed-jobs', require('./app/failed_jobs'));
 
 App = Vue.extend({});
 
 router = new VueRouter({
   history: true,
-  root: "/app"
+  root: "/bolt"
 });
 
 router.map({
-  '/bolt': {
-    name: 'audit_list',
-    component: Sandbox
+  '*': {
+    component: QueueList
+  },
+  '/': {
+    name: 'queue_list',
+    component: QueueList
+  },
+  '/:queue/failed': {
+    name: 'failed_jobs',
+    component: FailedJobs
   }
 });
 
 router.start(App, '#app');
+
+});
+
+require.register("js/app/failed_jobs.coffee", function(exports, require, module) {
+module.exports = {
+  mixins: [require('./mixins/jobs')],
+  data: function() {
+    return {
+      jobs: [],
+      job: false
+    };
+  },
+  ready: function() {
+    return this.getFailed(this.$route.params.queue, {}, (function(_this) {
+      return function(resp) {
+        return _this.jobs = resp.data;
+      };
+    })(this));
+  },
+  methods: {
+    pickJob: function(job) {
+      return this.getFailedDetails(this.$route.params.queue, job, {}, (function(_this) {
+        return function(resp) {
+          return _this.job = {
+            job_data: resp.data,
+            job_id: job
+          };
+        };
+      })(this));
+    },
+    goHome: function() {
+      return this.$router.go({
+        name: 'queue_list',
+        params: {
+          queue: null
+        }
+      });
+    }
+  },
+  template: "<div class=\"cf mw8 center\">\n\n  <nav class=\"p3 pa4-ns\">\n    <a @click=\"goHome()\" class=\"link dim gray f6 f5-ns dib mr3\">Back</a>\n  </nav>\n\n  <div class=\"cf\">\n    <div class=\"fl w-100 w-50-ns tc\">\n      <div class=\"ph3 ph5-ns\">\n        <ul class=\"list pl0 measure center\">\n          <li class=\"lh-copy pv3 bg-white br3\">\n            {{jobs.length}} failed jobs of \n          </li>\n          <li v-for=\"job in jobs\" \n              @click=\"pickJob(job)\"\n              class=\"lh-copy pv3 stripe-dark\">\n                {{job}}\n          </li>\n        </ul>\n      </div>\n    </div>\n\n    <div v-if=\"job\" class=\"fl w-100 w-50-ns tc\">\n      <div class=\"mw10 center bg-white br3 pa0 mv3 ba b--black-10 overflow-hidden\">\n      <div class=\"tc\">\n        <h1 class=\"f4\">{{job.job_id}}</h1>\n        <div class=\"mw3 bb bw1 b--light-green center\"></div>\n          <ul class=\"list pl0 measure center\">\n            <li v-for=\"row in job.job_data\" \n                class=\"lh-copy pv3 stripe-dark\">\n                  {{row | json}}\n            </li>\n          </ul>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n"
+};
 
 });
 
@@ -14537,6 +14591,26 @@ module.exports = {
       }
       return this.$http['get']("/bolt/api/status", params).then(function(resp) {
         return callback(resp.data);
+      })["catch"](function(resp) {
+        return console.log(resp);
+      });
+    },
+    getFailed: function(queue_name, params, callback) {
+      if (params == null) {
+        params = {};
+      }
+      return this.$http['get']("/bolt/api/" + queue_name + "/failed", params).then(function(resp) {
+        return callback(resp);
+      })["catch"](function(resp) {
+        return console.log(resp);
+      });
+    },
+    getFailedDetails: function(queue_name, job_id, params, callback) {
+      if (params == null) {
+        params = {};
+      }
+      return this.$http['get']("/bolt/api/" + queue_name + "/failed/" + job_id, params).then(function(resp) {
+        return callback(resp);
       })["catch"](function(resp) {
         return console.log(resp);
       });
@@ -14556,7 +14630,7 @@ module.exports = {
 
 });
 
-require.register("js/app/sandbox.coffee", function(exports, require, module) {
+require.register("js/app/queue_list.coffee", function(exports, require, module) {
 module.exports = {
   mixins: [require('./mixins/jobs')],
   data: function() {
@@ -14595,14 +14669,23 @@ module.exports = {
           return _this.updateStatus();
         };
       })(this));
+    },
+    showFailedJobs: function(queue) {
+      return this.$router.go({
+        name: 'failed_jobs',
+        params: {
+          queue: queue
+        }
+      });
     }
   },
-  template: "<div class=\"cf mw8 center\">\n  <div v-for=\"queue in status\" class=\"fl w-50 tc pv5\">\n    <div class=\"mw5 center bg-white br3 pa0 mv3 ba b--black-10 overflow-hidden\">\n      <div class=\"tc\">\n        <h1 class=\"f4\">{{queue.queue_name}}</h1>\n        <div class=\"mw3 bb bw1 b--light-green center\"></div>\n      </div>\n      <ul class=\"list pl0 mt0 mb0 measure center tl\">\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Jobs Remaining:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.jobs_remaining}}\n              </div>\n            </div>\n            </div>\n        </li>\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Pool:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.worker_max}}\n              </div>\n            </div>\n            </div>\n        </li>\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Workers:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.workers.length}}\n              </div>\n            </div>\n            </div>\n        </li>\n      </ul>\n      <div class=\"cf\">\n        <div class=\"fl w-100 tc pv2 bg-washed-yellow bg-animate hover-bg-washed-red hover-white\">\n          Clear Jobs\n        </div>\n        <div @click=\"removeWorker(queue)\" class=\"fl w-50 tc pv2 bg-washed-blue bg-animate hover-bg-washed-green hover-black\">\n          - Worker\n        </div>\n        <div @click=\"addWorker(queue)\" class=\"fl w-50 tc pv2 bg-washed-blue bg-animate hover-bg-washed-green hover-black\">\n          + Worker\n        </div>\n        <div class=\"fl w-100 tc pv2 bg-washed-yellow bg-animate hover-bg-washed-red hover-white\">\n          Pause\n        </div>\n    </div>\n  </div>\n  </div>\n</div>"
+  template: "<div class=\"cf mw8 center\">\n  <div v-for=\"queue in status\" class=\"fl w-50 tc pv5\">\n    <div class=\"mw5 center bg-white br3 pa0 mv3 ba b--black-10 overflow-hidden\">\n      <div class=\"tc\">\n        <h1 class=\"f4\">{{queue.queue_name}}</h1>\n        <div class=\"mw3 bb bw1 b--light-green center\"></div>\n      </div>\n      <ul class=\"list pl0 mt0 mb0 measure center tl\">\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Jobs Remaining:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.jobs_remaining}}\n              </div>\n            </div>\n            </div>\n        </li>\n        <li @click=\"showFailedJobs(queue.queue_name)\"\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10 bg-animate hover-bg-washed-red\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Jobs Failed:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.failed_count}}\n              </div>\n            </div>\n            </div>\n        </li>\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Pool:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.worker_max}}\n              </div>\n            </div>\n            </div>\n        </li>\n        <li\n          class=\"flex items-center lh-copy pa3 ph0-l bb b--black-10\">\n            <div class=\"flex-auto\">\n            <div class=\"cf ph2\">\n              <div class=\"fl w-80\">\n                Workers:\n              </div>\n              <div class=\"fl tr w-20\">\n                {{queue.workers.length}}\n              </div>\n            </div>\n            </div>\n        </li>\n      </ul>\n      <div class=\"cf\">\n        <div class=\"fl w-100 tc pv2 bg-washed-yellow bg-animate hover-bg-washed-red hover-white\">\n          Clear Jobs\n        </div>\n        <div @click=\"removeWorker(queue)\" class=\"fl w-50 tc pv2 bg-washed-blue bg-animate hover-bg-washed-green hover-black\">\n          - Worker\n        </div>\n        <div @click=\"addWorker(queue)\" class=\"fl w-50 tc pv2 bg-washed-blue bg-animate hover-bg-washed-green hover-black\">\n          + Worker\n        </div>\n        <div class=\"fl w-100 tc pv2 bg-washed-yellow bg-animate hover-bg-washed-red hover-white\">\n          Pause\n        </div>\n    </div>\n  </div>\n  </div>\n</div>"
 };
 
 });
 
-require.alias("process/browser.js", "process");
+require.alias("brunch/node_modules/process/browser.js", "brunch/node_modules/process");
+require.alias("brunch/node_modules/process/browser.js", "process");
 require.alias("vue/dist/vue.common.js", "vue");
 require.alias("vue-resource/dist/vue-resource.common.js", "vue-resource");
 require.alias("vue-router/dist/vue-router.js", "vue-router");process = require('process');require.register("___globals___", function(exports, require, module) {

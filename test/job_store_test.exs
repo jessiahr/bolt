@@ -14,7 +14,6 @@ defmodule JobStoreTest do
     Bolt.Queue.enqueue(:bg, %{"job_param" => 123})
     {:ok, jid, params} =  Bolt.JobStore.start(:bg)
       assert params ==  %{"job_param" => 123}
-    # end
   end
 
   test "finishes a job" do
@@ -27,10 +26,18 @@ defmodule JobStoreTest do
 
   test "adds a job" do
     with_mocks([
-      # {Redix, [],  [command: fn(_, command) ->  handle_redis_command(command) end]},
       {UUID, [],  [uuid1: fn() ->  "SOMEJOB_ID" end]},
     ]) do
-      assert Bolt.JobStore.add(:bg, %{job_param: 12345}) == {:ok, "SOMEJOB_ID"}
+      assert Bolt.JobStore.add(:bg, %{job_param: 12345}) == {:ok, [1, 1]}
     end
   end
+
+  test "adds a list of jobs" do
+    with_mocks([
+      {UUID, [],  [uuid1: fn() ->  "SOMEJOB_ID" end]},
+    ]) do
+      assert Bolt.JobStore.add(:bg, [%{job_param: 12345}, %{job_param: 12343}]) == [{:ok}]
+    end
+  end
+
 end

@@ -51,6 +51,7 @@ defmodule Bolt.Scheduler do
 
     status = state
     |> Map.put(:workers, workers)
+    |> Map.put(:failed_count, Bolt.JobStore.failed_count(state[:queue_name]))
     |> Map.put(:jobs_remaining, (Bolt.JobStore.remaining_count(state[:queue_name]) |> elem(1)))
 
     {:reply, status, state}
