@@ -65,9 +65,27 @@ defmodule Bolt.Queue do
     |> Enum.map(fn(scheduler) -> Bolt.Scheduler.status(scheduler[:pid]) end)
   end
 
+
   @doc """
-  Adds a job to the queue if it exists.
+  Enqueues a single job or list of jobs to the specified queue.
+
+  ## Parameters
+
+    - queue_name: Atom name of the target queue.
+    - job_params | job_list: Map containing the job data or list of job maps.
+
+  ## Examples
+      # Add a single job to the :bg queue
+      iex> Bolt.enqueue(:bg, %{"somefield" => 1})
+      {:ok, [1, 1]}
+
+      # Add a collection of jobs to the :bg queue
+      iex> Bolt.enqueue(:bg, [%{"somefield" => 1}, %{"somefield" => 1}])
+      {:ok, [1, 1]}
+
   """
+
+
   def enqueue(queue_name, job_params) when is_map(job_params) do
     if queue_exists?(queue_name) do
       Bolt.JobStore.add(queue_name, job_params)
@@ -76,12 +94,9 @@ defmodule Bolt.Queue do
     end
   end
 
-  @doc """
-  Adds a list of jobs to the queue if it exists.
-  """
-  def enqueue(queue_name, job_params) when is_list(job_params) do
+  def enqueue(queue_name, job_list) when is_list(job_list) do
     if queue_exists?(queue_name) do
-      Bolt.JobStore.add(queue_name, job_params)
+      Bolt.JobStore.add(queue_name, job_list)
     else
       {:error, "Undefined Queue"}
     end
