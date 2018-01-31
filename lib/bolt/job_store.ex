@@ -1,5 +1,5 @@
 defmodule Bolt.JobStore do
-  @chunk_size 500
+  @chunk_size 1000
 
   use GenServer
   require Logger
@@ -19,6 +19,7 @@ defmodule Bolt.JobStore do
       commands_for_chunk = Enum.reduce(job_set, [], fn(job, acc) -> 
         Bolt.JobStore.Redis.build_add(queue_name, job) ++ acc
       end)
+      |> Bolt.JobStore.Redis.to_transaction
       Logger.info "Bolt: Sending chunk"
       GenServer.call(__MODULE__, {:add_list, commands_for_chunk})
     end)
@@ -100,31 +101,46 @@ defmodule Bolt.JobStore do
     Redix.pipeline!(
       conn,
       [
+        # remove the first instance found of this job id from the inprogress list
         ["LREM", "#{queue_name}:inprogress", 0, job_id],
+        
+        # remove the job params 
         ["DEL", "#{queue_name}:jobs:#{job_guid}"],
-        ["RPUSH", "#{queue_name}:failed", job_guid],
+
+        # save the failed job params and error 
         ["HSET", "#{queue_name}:failed:#{job_guid}", "params", job_params],
-        ["HSET", "#{queue_name}:failed:#{job_guid}", "error", error]
+        ["HSET", "#{queue_name}:failed:#{job_guid}", "error", error],
+        
+        # add the job id to the failed list
+        ["RPUSH", "#{queue_name}:failed", job_guid]
       ]
     )
     {:reply, {:ok}, state}
   end
   
   def handle_call({:finish, queue_name, job_id}, _from, state = %{conn: conn}) do
-    {:ok, result} = Redix.command(conn, ["DEL", job_id])
-    if result == 0 do
-      {:reply, :error, state}
-    else
-      remove_backup_job(conn, queue_name, job_id)
-      {:reply, :ok, state}
+    commands = Bolt.JobStore.Redis.build_finish(queue_name, job_id)
+    |> Bolt.JobStore.Redis.to_transaction
+    result = Redix.pipeline!(conn, commands)
+
+    case result do
+      ["OK", "QUEUED", "QUEUED", [1, 1]] -> 
+        {:reply, :ok, state}
+      other ->
+        IO.inspect other
+        {:reply, :error, state}  
     end
   end
 
   def handle_call({:start, queue_name}, _from, state = %{conn: conn}) do
     {:ok, job_id} = Redix.command(conn, ["RPOP", "#{queue_name}:waiting"])
-    backup_job(conn, queue_name, job_id)
-    {:ok, job} = Redix.command(conn, ["HGET", job_id, "params"])
-    {:reply, {:ok, job_id, decode_job(job)}, state}
+    if job_id != nil do
+      backup_job(conn, queue_name, job_id)
+      {:ok, job} = Redix.command(conn, ["HGET", job_id, "params"])
+      {:reply, {:ok, job_id, decode_job(job)}, state} 
+    else
+      {:reply, {:nojob}, state} 
+    end
   end
 
   def handle_call({:resume_inprogress, queue_name}, _from, state = %{conn: conn}) do
@@ -188,10 +204,5 @@ defmodule Bolt.JobStore do
   def backup_job(_, _, nil), do: nil
   def backup_job(conn, queue_name, job_id) do
     Redix.command(conn, ["LPUSH", "#{queue_name}:inprogress", job_id])
-  end
-
-  def remove_backup_job(_, _, nil), do: nil
-  def remove_backup_job(conn, queue_name, job_id) do
-    Redix.command(conn, ["LREM", "#{queue_name}:inprogress", 0, job_id])
   end
 end

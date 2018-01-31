@@ -59,7 +59,7 @@ defmodule Bolt.Scheduler do
 
   def handle_info(:schedule_work, state = %{status: :starting}) do
     Logger.warn "init #{state[:queue_name]}"
-    Bolt.Queue.resume_inprogress(state[:queue_name])
+    # Bolt.Queue.resume_inprogress(state[:queue_name])
     schedule_next_work()
     {:noreply, state |> Map.put(:status, :running)}
   end
@@ -103,11 +103,10 @@ defmodule Bolt.Scheduler do
   end
 
   def build_workers(count, queue_name) when count > 0 do
-    {:ok, job_id, job} = Bolt.Queue.checkout(queue_name)
-    case job_id do
-      nil ->
+    case Bolt.Queue.checkout(queue_name) do
+      {:nojob} ->
         []
-      _ ->
+      {:ok, job_id, job} ->
         {:ok, worker} = Bolt.Worker.start_link(job, job_id)
         [%{process: worker, job_id: job_id, started_at: Timex.now} | build_workers(count - 1, queue_name)]
     end
