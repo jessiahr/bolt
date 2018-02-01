@@ -72,7 +72,7 @@ defmodule QueueTest do
   end
 
   test "enqueues a large list of jobs when queue does exist" do
-    test_size = 100000
+    test_size = 10000
     assert Bolt.JobStore.remaining_count(:main) == {:ok, 0}
     jobs = for n <- 1..test_size do
       %{a: 1, b: [2, 3]}
